@@ -4,7 +4,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <sys/select.h>
 #include <linux/if_ether.h>
 #include <functional>
 #include <string>
@@ -24,7 +23,7 @@ static PacketPtr LastPacket() {
 }
 
 static bool IsLastPacket(PacketPtr& packet) {
-  return !::memcmp(packet->Raw(), LAST_PACKET_DATA, sizeof(LAST_PACKET_DATA));
+  return !::memcmp(packet->Buffer(), LAST_PACKET_DATA, sizeof(LAST_PACKET_DATA));
 }
 
 Kernel::Kernel()
@@ -58,14 +57,17 @@ void Kernel::DoStop() {
       LOG(INFO) << "waiting for all connection closing";
     }
     LOG(INFO) << "all connection closed";
+
     receive_stop_state_ = SS_STOPING;
     if (receive_thread_.joinable()) {
       receive_thread_.join();
     }
+
     packets_.Push(LastPacket());
     if (send_thread_.joinable()) {
       send_thread_.join();
     }
+
     ::close(sockfd_);
   }
 }
@@ -93,10 +95,14 @@ void Kernel::ReceiveThread() {
       LOG(INFO) << "invalid tcp packet";
       continue;
     }
-    string ip_port = packet->DstIpPortString();
-    Connection* conn = FindConnection(ip_port);
+    string dst_ip_port = packet->DstIpPortString();
+    Connection* conn = FindConnection(dst_ip_port);
     if (conn == nullptr) {
-      VLOG(3) << "no connection match the packet";
+      string src_ip_port = packet->SrcIpPortString();
+      conn = FindConnection(src_ip_port);
+    }
+    if (conn == nullptr) {
+      VLOG(4) << "no connection match the packet";
       continue;
     } else {
       conn->ProcessPacket(*packet);
@@ -116,7 +122,7 @@ void Kernel::SendThread() {
     CHECK(sockfd_ != -1);
     struct sockaddr_in dst_addr = packet->DstSockAddr();
     int ret = sendto(sockfd_,
-                     packet->Raw(),
+                     packet->Buffer(),
                      packet->Size(),
                      0,
                      (struct sockaddr*)&dst_addr,

@@ -93,10 +93,37 @@ struct Packet {
             sin_port: pkt.tcp.dest,
             sin_addr: {s_addr: pkt.ip.daddr}};
   }
-
-  const unsigned char* Raw() const {
-    return raw;
+  uint16 SrcPort() const {
+    return ::ntohs(pkt.tcp.source);
   }
+  uint16 DstPort() const {
+    return ::ntohs(pkt.tcp.dest);
+  }
+  uint16 SrcPortNet() const {
+    return pkt.tcp.source;
+  }
+  uint16 DstPortNet() const {
+    return pkt.tcp.dest;
+  }
+  uint32 SrcIpNet() const {
+    return pkt.ip.saddr;
+  }
+  uint32 DstIpNet() const {
+    return pkt.ip.daddr;
+  }
+  void SetSrcIpNet(uint32 ip) {
+    pkt.ip.saddr = ip; 
+  }
+  void SetDstIpNet(uint32 ip) {
+    pkt.ip.daddr = ip;
+  }
+  void SetSrcPortNet(uint16 port) {
+    pkt.tcp.source = port;
+  }
+  void SetDstPortNet(uint16 port) {
+    pkt.tcp.dest = port;
+  }
+
   unsigned char* Buffer() {
     return raw;
   }
@@ -218,9 +245,12 @@ inline PacketPtr FinPacket(uint32 seq,
   return packet;
 }
 
-inline PacketPtr AckPacket(uint32 seq, const Packet& rp) {
+inline PacketPtr AckPacket(uint32 seq,
+                           const Packet& rp,
+                           const InetAddress& dst,
+                           const InetAddress& src) {
   auto sp = std::make_shared<Packet>();
-  sp->ExchangeAddress(rp);
+  sp->SetAddress(dst, src);
   sp->SetAck();
   int data_len = rp.DataLen();
   if (data_len > 0) {
@@ -232,9 +262,12 @@ inline PacketPtr AckPacket(uint32 seq, const Packet& rp) {
   return sp;
 }
 
-inline PacketPtr FinAckPacket(uint32 seq, const Packet& rp) {
+inline PacketPtr FinAckPacket(uint32 seq,
+                              const Packet& rp,
+                              const InetAddress& dst,
+                              const InetAddress& src) {
   auto sp = std::make_shared<Packet>();
-  sp->ExchangeAddress(rp);
+  sp->SetAddress(dst, src);
   sp->SetFin();
   sp->SetAck();
   sp->SetAckSeq(rp.GetSeq() + 1);

@@ -3,23 +3,28 @@
 #include "connection.h"
 #include "kernel.h"
 
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::string;
+
 using tcpmany::Kernel;
 using tcpmany::Connection;
 using tcpmany::InetAddress;
 
 void OnConnected(Connection& conn) {
-  std::cout << "OnConnected" << std::endl;
+  cout << "OnConnected" << endl;
   conn.Send("hello world!");
 }
 
 void OnMessage(Connection& conn, const char* msg, int msg_len) {
-  std::cout << "OnMessage: " << std::string(msg, msg_len) << std::endl;
+  cout << "OnMessage: " << string(msg, msg_len) << endl;
 }
 
 int main(int argc, char* argv[]) {
   if (argc != 4) {
-    printf("usage: %s <ip> <port> <count>\n", argv[0]);
-    return 0;
+    cerr << "usage: " << argv[0] << " <ip> <port> <count>" << endl;
+    return -1;
   }
   Kernel::Start();
 
@@ -38,7 +43,7 @@ int main(int argc, char* argv[]) {
     conn->SetMessageCallback(&OnMessage);
     conn->Connect();
   }
-  std::cout << "press any key to finish" << std::endl;
+  cout << "press any key to finish" << endl;
   getchar();
   Kernel::Stop();
 }

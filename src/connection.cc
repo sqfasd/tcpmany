@@ -62,7 +62,7 @@ void Connection::ProcessPacket(const Packet& packet) {
       break;
     case CS_SYN_SENT:
       if (packet.IsSyn() && packet.IsAck()) {
-        Kernel::Send(AckPacket(seq_, packet));
+        Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
         state_ = CS_ESTABLISHED;
         connected_callback_(*this);
       }
@@ -75,13 +75,13 @@ void Connection::ProcessPacket(const Packet& packet) {
       if (packet.IsAck()) {
         state_ = CS_FIN_WAIT_2;
       } else if (packet.IsFin()) {
-        Kernel::Send(AckPacket(seq_, packet));
+        Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
         state_ = CS_CLOSING;
       }
       break;
     case CS_FIN_WAIT_2:
       if (packet.IsFin()) {
-        Kernel::Send(AckPacket(seq_, packet));
+        Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
         state_ = CS_CLOSED; // CS_TIME_WAIT;
         closed_callback_(*this);
       }
@@ -101,13 +101,13 @@ void Connection::ProcessMessage(const Packet& packet) {
   // TODO process message packet
   int data_len = packet.DataLen();
   if (data_len > 0) {
-    Kernel::Send(AckPacket(seq_, packet));
+    Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
     message_callback_(*this, packet.Data(), data_len);
   } else if (packet.IsAck()) {
     // TODO clear the resend timer
     LOG(WARNING) << "[FIXME] receive ack";
   } else if (packet.IsFin()) {
-    Kernel::Send(FinAckPacket(seq_, packet));
+    Kernel::Send(FinAckPacket(seq_, packet, dst_addr_, src_addr_));
     state_ = CS_CLOSING;
   }
 }
