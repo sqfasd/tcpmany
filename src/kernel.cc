@@ -98,8 +98,14 @@ void Kernel::ReceiveThread() {
     string dst_ip_port = packet->DstIpPortString();
     Connection* conn = FindConnection(dst_ip_port);
     if (conn == nullptr) {
+      // process the fake ip address
       string src_ip_port = packet->SrcIpPortString();
-      conn = FindConnection(src_ip_port);
+      string fake_addr = src_ip_port.substr(0, src_ip_port.find(':'));
+      string dst_port = dst_ip_port.substr(dst_ip_port.find(':') + 1,
+                                           dst_ip_port.length());
+      fake_addr += ':';
+      fake_addr += dst_port;
+      conn = FindConnection(fake_addr);
     }
     if (conn == nullptr) {
       VLOG(4) << "no connection match the packet";

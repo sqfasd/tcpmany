@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
   CHECK(::inet_pton(AF_INET, argv[1], &addr.sin_addr) != 0);
   g_client_ip_net = addr.sin_addr.s_addr;
   g_server_port = atoi(argv[2]);
-  const char* interface = argv[3]; 
+  const char* interface = argv[3];
 
   g_sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
   CHECK(g_sockfd >= 0) << "socket error: " << strerror(errno);

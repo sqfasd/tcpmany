@@ -32,10 +32,10 @@ class InetAddress {
     CHECK(::inet_pton(AF_INET, ip.c_str(), &addr_.sin_addr) != 0)
         << "convert ip failed";
   }
-  InetAddress(uint32 ip, uint16 port) {
+  InetAddress(uint32 ip_host, uint16 port_host) {
     addr_.sin_family = AF_INET;
-    addr_.sin_port = port;
-    addr_.sin_addr.s_addr = ip;
+    addr_.sin_port = ::htons(port_host);
+    addr_.sin_addr.s_addr = ::htonl(ip_host);
   }
 
   std::string ToIpPort() const {

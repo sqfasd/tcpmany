@@ -35,9 +35,9 @@ int main(int argc, char* argv[]) {
 
   InetAddress server_addr(SERVER_IP, SERVER_PORT);
 
-  uint32 ip = inet_addr("127.0.0.1");
+  uint32 ip = ::ntohl(::inet_addr("224.0.10.1"));
   for (int i = 0; i < COUNT; ++i) {
-    InetAddress client_addr(ip++, ::htons(LOCAL_PORT));
+    InetAddress client_addr(ip++, LOCAL_PORT);
     Connection* conn = Kernel::NewConnection(server_addr, client_addr);
     conn->SetConnectedCallback(&OnConnected);
     conn->SetMessageCallback(&OnMessage);
