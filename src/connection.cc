@@ -50,7 +50,7 @@ void Connection::Send(const std::string& message) {
 
 void Connection::ProcessPacket(const Packet& packet) {
   int data_len = packet.DataLen();
-  VLOG(3) << "data(" << data_len << "):"
+  VLOG(4) << "data(" << data_len << "):"
           << std::string(packet.Data(), data_len);
   if (data_len > 0) {
     ack_seq_.store(packet.GetSeq() + data_len);
@@ -105,7 +105,7 @@ void Connection::ProcessMessage(const Packet& packet) {
     message_callback_(*this, packet.Data(), data_len);
   } else if (packet.IsAck()) {
     // TODO clear the resend timer
-    LOG(WARNING) << "[FIXME] receive ack";
+    VLOG(4) << "[FIXME] receive ack";
   } else if (packet.IsFin()) {
     Kernel::Send(FinAckPacket(seq_, packet, dst_addr_, src_addr_));
     state_ = CS_CLOSING;

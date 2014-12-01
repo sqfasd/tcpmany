@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -83,7 +84,8 @@ int main(int argc, char* argv[]) {
   CHECK(handle != NULL) << "open interface failed: " << err;
   CHECK(pcap_datalink(handle) == DLT_EN10MB) << "not an ethernet interface";
 
-  const char filter_exp[] = "tcp port 5223";
+  char filter_exp[50] = {0};
+  snprintf(filter_exp, sizeof(filter_exp), "tcp port %d", g_server_port);
   struct bpf_program fp;
   CHECK(pcap_compile(handle, &fp, filter_exp, 0, net) == 0)
       << "compile filter expression failed: " << pcap_geterr(handle);
