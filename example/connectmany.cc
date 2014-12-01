@@ -18,13 +18,15 @@ using tcpmany::InetAddress;
 
 void OnConnected(int id, Connection& conn) {
   cout << "OnConnected id=" << id << endl;
-  conn.Send(
-    "GET /sub?uid=1 HTTP/1.1\r\n"
+  char buf[1024] = {0};
+  sprintf(buf,
+    "GET /sub?uid=%d HTTP/1.1\r\n"
     "User-Agent: tcpmany/0.1.0\r\n"
     "Host: localhost:9000\r\n"
     "Accept: */*\r\n"
-    "\r\n"
-  );
+    "\r\n",
+    id);
+  conn.Send(buf);
 }
 
 void OnMessage(int id, Connection& conn, const char* msg, int msg_len) {
