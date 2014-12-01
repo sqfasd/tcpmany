@@ -6,6 +6,7 @@
 #include <thread>
 #include <memory>
 #include <atomic>
+#include <mutex>
 
 #include "base.h"
 #include "singleton.h"
@@ -54,11 +55,14 @@ class Kernel : public NonCopyable {
   void ReceiveThread();
   void SendThread();
   Connection* FindConnection(const std::string& address);
+  void InsertConnection(const std::string& addr, Connection* conn);
 
   // must close it before remove
   void DoRemove(Connection& conn);
 
   ConnectionMap connections_;
+  std::mutex conn_mutex_;
+
   std::thread receive_thread_;
   std::thread send_thread_;
   int sockfd_;

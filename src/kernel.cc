@@ -43,6 +43,7 @@ Kernel::~Kernel() {
 }
 
 void Kernel::DoStop() {
+  std::unique_lock<std::mutex> lock(conn_mutex_);
   if (!stoped_) {
     stoped_ = true;
     for (auto& iter : connections_) {
@@ -156,14 +157,15 @@ Connection* Kernel::DoNewConnection(const InetAddress& dst_addr,
                                     const InetAddress& src_addr) {
   std::string ip_port = src_addr.ToIpPort();
   // TODO consider throw an exception instead
-  CHECK(connections_[ip_port] == nullptr)
+  CHECK(FindConnection(ip_port) == nullptr)
       << "the src_addr is already in use: " << ip_port;
   Connection* conn = new Connection(dst_addr, src_addr);
-  connections_[ip_port] = conn;
+  InsertConnection(ip_port, conn);
   return conn;
 }
 
 Connection* Kernel::FindConnection(const std::string& ip_port) {
+  std::unique_lock<std::mutex> lock(conn_mutex_);
   auto iter = connections_.find(ip_port);
   if (iter == connections_.end()) {
     return nullptr;
@@ -171,7 +173,13 @@ Connection* Kernel::FindConnection(const std::string& ip_port) {
   return iter->second;
 }
 
+void Kernel::InsertConnection(const std::string& addr, Connection* conn) {
+  std::unique_lock<std::mutex> lock(conn_mutex_);
+  connections_[addr] = conn;
+}
+
 void Kernel::DoRemove(Connection& conn) {
+  std::unique_lock<std::mutex> lock(conn_mutex_);
   CHECK(conn.IsClosed());
   std::string address = conn.GetSrcAddress().ToIpPort();
   connections_.erase(address);
