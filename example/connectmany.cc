@@ -23,7 +23,6 @@ void OnConnected(int id, Connection& conn) {
   sprintf(buf,
     "GET /sub?uid=%d HTTP/1.1\r\n"
     "User-Agent: tcpmany/0.1.0\r\n"
-    "Host: localhost:9000\r\n"
     "Accept: */*\r\n"
     "\r\n",
     id);
