@@ -17,7 +17,8 @@ using tcpmany::Connection;
 using tcpmany::InetAddress;
 
 void OnConnected(int id, Connection& conn) {
-  cout << "OnConnected id=" << id << endl;
+  cout << "OnConnected id:" << id
+       << ", local addr: " << conn.GetSrcAddress().ToIpPort() << endl;
   char buf[1024] = {0};
   sprintf(buf,
     "GET /sub?uid=%d HTTP/1.1\r\n"
@@ -30,7 +31,9 @@ void OnConnected(int id, Connection& conn) {
 }
 
 void OnMessage(int id, Connection& conn, const char* msg, int msg_len) {
-  cout << "OnMessage id=" << id << endl << string(msg, msg_len) << endl;
+  cout << "OnMessage id: " << id 
+       << ", local addr: " << conn.GetSrcAddress().ToIpPort() << endl
+       << string(msg, msg_len) << endl;
 }
 
 int main(int argc, char* argv[]) {
