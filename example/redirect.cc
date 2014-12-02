@@ -30,7 +30,6 @@ void ProcessPacket(u_char *args,
     uint32 dst_ip_net = packet.DstIpNet();
     packet.SetDstIpNet(g_client_ip_net);
     packet.SetSrcIpNet(dst_ip_net);
-    packet.SetSrcPortNet(packet.DstPortNet());
     packet.CalculateChecksum();
     VLOG(3) << "redirect pakcet: " << packet;
 
