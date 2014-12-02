@@ -43,13 +43,15 @@ Kernel::~Kernel() {
 }
 
 void Kernel::DoStop() {
-  std::unique_lock<std::mutex> lock(conn_mutex_);
-  if (!stoped_) {
-    stoped_ = true;
+  if (!stoped_.exchange(true)) {
     for (auto& iter : connections_) {
+      if (iter.second->IsClosed()) {
+        DoRelease(*(iter.second));
+        continue;
+      }
       iter.second->SetClosedCallback([](Connection& conn) {
           LOG(INFO) << "Connection Closed: " << conn.GetSrcAddress().ToIpPort();
-          Kernel::Remove(conn);
+          Kernel::Release(conn);
       });
       iter.second->Close(); 
     }
@@ -178,7 +180,7 @@ void Kernel::InsertConnection(const std::string& addr, Connection* conn) {
   connections_[addr] = conn;
 }
 
-void Kernel::DoRemove(Connection& conn) {
+void Kernel::DoRelease(Connection& conn) {
   std::unique_lock<std::mutex> lock(conn_mutex_);
   CHECK(conn.IsClosed());
   std::string address = conn.GetSrcAddress().ToIpPort();

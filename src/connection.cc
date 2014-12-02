@@ -13,7 +13,8 @@ void DefaultConnectedCallback(Connection&) {
 void DefaultMessageCallback(Connection&, const char*, int) {
 }
 
-void DefaultClosedCallback(Connection&) {
+void DefaultClosedCallback(Connection& conn) {
+  VLOG(3) << "DefaultClosedCallback: " << conn.GetSrcAddress().ToIpPort();
 }
 
 Connection::Connection(const InetAddress& dst_addr,
@@ -28,6 +29,7 @@ Connection::Connection(const InetAddress& dst_addr,
 }
 
 Connection::~Connection() {
+  VLOG(3) << "Connection destroy: " << GetSrcAddress().ToIpPort();
 }
 
 void Connection::Connect() {
@@ -65,6 +67,8 @@ void Connection::ProcessPacket(const Packet& packet) {
         Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
         state_ = CS_ESTABLISHED;
         connected_callback_(*this);
+      } else {
+        CHECK(false);
       }
       //TODO if receive packet send by self
       break;
@@ -72,11 +76,17 @@ void Connection::ProcessPacket(const Packet& packet) {
       ProcessMessage(packet);
       break;
     case CS_FIN_WAIT_1:
-      if (packet.IsAck()) {
+      if (packet.IsAck() && packet.IsFin()) {
+        Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
+        state_ = CS_CLOSED;
+        closed_callback_(*this);
+      } else if (packet.IsAck()) {
         state_ = CS_FIN_WAIT_2;
       } else if (packet.IsFin()) {
         Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
         state_ = CS_CLOSING;
+      } else {
+        CHECK(false);
       }
       break;
     case CS_FIN_WAIT_2:
@@ -84,12 +94,16 @@ void Connection::ProcessPacket(const Packet& packet) {
         Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
         state_ = CS_CLOSED; // CS_TIME_WAIT;
         closed_callback_(*this);
+      } else {
+        CHECK(false);
       }
       break;
     case CS_CLOSING:
       if (packet.IsAck()) {
         state_ = CS_CLOSED; // CS_TIME_WAIT;
         closed_callback_(*this);
+      } else {
+        CHECK(false);
       }
       break;
     case CS_TIME_WAIT:
@@ -103,12 +117,13 @@ void Connection::ProcessMessage(const Packet& packet) {
   if (data_len > 0) {
     Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
     message_callback_(*this, packet.Data(), data_len);
-  } else if (packet.IsAck()) {
-    // TODO clear the resend timer
-    VLOG(4) << "[FIXME] receive ack";
   } else if (packet.IsFin()) {
     Kernel::Send(FinAckPacket(seq_, packet, dst_addr_, src_addr_));
     state_ = CS_CLOSING;
+  } else if (packet.IsAck()) {
+    // TODO clear the resend timer
+  } else {
+    CHECK(false) << "unexpect packet";
   }
 }
 

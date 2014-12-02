@@ -39,8 +39,8 @@ class Kernel : public NonCopyable {
   static void Send(std::shared_ptr<Packet> packet) {
     Singleton<Kernel>::Instance().DoSend(packet);
   }
-  static void Remove(Connection& conn) {
-    Singleton<Kernel>::Instance().DoRemove(conn);
+  static void Release(Connection& conn) {
+    Singleton<Kernel>::Instance().DoRelease(conn);
   }
 
  private:
@@ -58,7 +58,7 @@ class Kernel : public NonCopyable {
   void InsertConnection(const std::string& addr, Connection* conn);
 
   // must close it before remove
-  void DoRemove(Connection& conn);
+  void DoRelease(Connection& conn);
 
   ConnectionMap connections_;
   std::mutex conn_mutex_;
