@@ -49,9 +49,9 @@ void Kernel::DoStop() {
         DoRelease(iter.second);
         continue;
       }
-      iter.second->SetClosedCallback([](ConnectionPtr conn) {
+      iter.second->SetClosedCallback([&](ConnectionPtr conn) {
           LOG(INFO) << "Connection Closed: " << conn->GetSrcAddress().ToIpPort();
-          Kernel::Release(conn);
+          this->DoRelease(conn);
       });
       iter.second->Close(); 
     }
