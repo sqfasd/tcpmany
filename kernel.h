@@ -22,8 +22,6 @@ typedef std::unordered_map<std::string, std::shared_ptr<Connection>> ConnectionM
 
 class Kernel : public NonCopyable {
  public:
-  friend class Singleton<Kernel>;
-
   static void Start() {
     Singleton<Kernel>::Instance().DoStart();
   }
@@ -76,6 +74,7 @@ class Kernel : public NonCopyable {
   StopStatus receive_stop_state_;
   std::atomic<bool> stoped_;
 
+  friend class Singleton<Kernel>;
   friend class Connection;
 };
 
