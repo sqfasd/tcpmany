@@ -1,8 +1,7 @@
 #include <string>
 #include <iostream>
 #include <functional>
-#include "connection.h"
-#include "kernel.h"
+#include "tcpmany.h"
 
 using std::cout;
 using std::cerr;
@@ -13,12 +12,12 @@ using std::placeholders::_2;
 using std::placeholders::_3;
 
 using tcpmany::Kernel;
-using tcpmany::Connection;
+using tcpmany::ConnectionPtr;
 using tcpmany::InetAddress;
 
-void OnConnected(int id, Connection& conn) {
+void OnConnected(int id, ConnectionPtr conn) {
   cout << "OnConnected id:" << id
-       << ", local addr: " << conn.GetSrcAddress().ToIpPort() << endl;
+       << ", local addr: " << conn->GetSrcAddress().ToIpPort() << endl;
   char buf[1024] = {0};
   sprintf(buf,
     "GET /sub?uid=%d HTTP/1.1\r\n"
@@ -26,12 +25,12 @@ void OnConnected(int id, Connection& conn) {
     "Accept: */*\r\n"
     "\r\n",
     id);
-  conn.Send(buf);
+  conn->Send(buf);
 }
 
-void OnMessage(int id, Connection& conn, const char* msg, int msg_len) {
+void OnMessage(int id, ConnectionPtr conn, const char* msg, int msg_len) {
   cout << "OnMessage id: " << id 
-       << ", local addr: " << conn.GetSrcAddress().ToIpPort() << endl
+       << ", local addr: " << conn->GetSrcAddress().ToIpPort() << endl
        << string(msg, msg_len) << endl;
 }
 
@@ -52,7 +51,7 @@ int main(int argc, char* argv[]) {
   uint32 ip = ::ntohl(::inet_addr(argv[4]));
   for (int i = 0; i < COUNT; ++i) {
     InetAddress client_addr(ip++, LOCAL_PORT);
-    Connection* conn = Kernel::NewConnection(server_addr, client_addr);
+    ConnectionPtr conn = Kernel::NewConnection(server_addr, client_addr);
     conn->SetConnectedCallback(std::bind(&OnConnected, i, _1));
     conn->SetMessageCallback(std::bind(&OnMessage, i, _1, _2, _3));
     conn->Connect();

@@ -46,11 +46,11 @@ void Kernel::DoStop() {
   if (!stoped_.exchange(true)) {
     for (auto& iter : connections_) {
       if (iter.second->IsClosed()) {
-        DoRelease(*(iter.second));
+        DoRelease(iter.second);
         continue;
       }
-      iter.second->SetClosedCallback([](Connection& conn) {
-          LOG(INFO) << "Connection Closed: " << conn.GetSrcAddress().ToIpPort();
+      iter.second->SetClosedCallback([](ConnectionPtr conn) {
+          LOG(INFO) << "Connection Closed: " << conn->GetSrcAddress().ToIpPort();
           Kernel::Release(conn);
       });
       iter.second->Close(); 
@@ -155,13 +155,13 @@ void Kernel::DoStart() {
   receive_thread_ = std::thread(&Kernel::ReceiveThread, this);
 }
 
-Connection* Kernel::DoNewConnection(const InetAddress& dst_addr,
+ConnectionPtr Kernel::DoNewConnection(const InetAddress& dst_addr,
                                     const InetAddress& src_addr) {
   std::string ip_port = src_addr.ToIpPort();
   // TODO consider throw an exception instead
   CHECK(FindConnection(ip_port) == nullptr)
       << "the src_addr is already in use: " << ip_port;
-  Connection* conn = new Connection(dst_addr, src_addr);
+  ConnectionPtr conn(new Connection(dst_addr, src_addr));
   InsertConnection(ip_port, conn);
   return conn;
 }
@@ -172,20 +172,19 @@ Connection* Kernel::FindConnection(const std::string& ip_port) {
   if (iter == connections_.end()) {
     return nullptr;
   }
-  return iter->second;
+  return iter->second.get();
 }
 
-void Kernel::InsertConnection(const std::string& addr, Connection* conn) {
+void Kernel::InsertConnection(const std::string& addr, ConnectionPtr conn) {
   std::unique_lock<std::mutex> lock(conn_mutex_);
   connections_[addr] = conn;
 }
 
-void Kernel::DoRelease(Connection& conn) {
+void Kernel::DoRelease(ConnectionPtr conn) {
   std::unique_lock<std::mutex> lock(conn_mutex_);
-  CHECK(conn.IsClosed());
-  std::string address = conn.GetSrcAddress().ToIpPort();
+  CHECK(conn->IsClosed());
+  std::string address = conn->GetSrcAddress().ToIpPort();
   connections_.erase(address);
-  delete &conn;
 }
 
 }

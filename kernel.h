@@ -8,17 +8,17 @@
 #include <atomic>
 #include <mutex>
 
-#include "base.h"
-#include "singleton.h"
-#include "noncopyable.h"
-#include "blocking_queue.h"
+#include "base/basictypes.h"
+#include "base/noncopyable.h"
+#include "base/singleton.h"
+#include "base/blocking_queue.h"
 #include "inet_address.h"
 
 namespace tcpmany {
 
 struct Packet;
 class Connection;
-typedef std::unordered_map<std::string, Connection*> ConnectionMap;
+typedef std::unordered_map<std::string, std::shared_ptr<Connection>> ConnectionMap;
 
 class Kernel : public NonCopyable {
  public:
@@ -32,14 +32,14 @@ class Kernel : public NonCopyable {
   }
 
   // Kernel will take ownership of the connection
-  static Connection* NewConnection(const InetAddress& dst_addr,
+  static std::shared_ptr<Connection> NewConnection(const InetAddress& dst_addr,
                                    const InetAddress& src_addr) {
     return Singleton<Kernel>::Instance().DoNewConnection(dst_addr, src_addr);
   }
   static void Send(std::shared_ptr<Packet> packet) {
     Singleton<Kernel>::Instance().DoSend(packet);
   }
-  static void Release(Connection& conn) {
+  static void Release(std::shared_ptr<Connection> conn) {
     Singleton<Kernel>::Instance().DoRelease(conn);
   }
 
@@ -48,17 +48,17 @@ class Kernel : public NonCopyable {
   ~Kernel();
   void DoStart();
   void DoStop();
-  Connection* DoNewConnection(const InetAddress& dst_addr,
+  std::shared_ptr<Connection> DoNewConnection(const InetAddress& dst_addr,
                               const InetAddress& src_addr);
   void DoSend(std::shared_ptr<Packet> packet);
 
   void ReceiveThread();
   void SendThread();
   Connection* FindConnection(const std::string& address);
-  void InsertConnection(const std::string& addr, Connection* conn);
+  void InsertConnection(const std::string& addr, std::shared_ptr<Connection> conn);
 
   // must close it before remove
-  void DoRelease(Connection& conn);
+  void DoRelease(std::shared_ptr<Connection> conn);
 
   ConnectionMap connections_;
   std::mutex conn_mutex_;
