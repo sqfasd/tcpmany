@@ -117,12 +117,12 @@ class TimerManager : public NonCopyable {
     timers_.erase(timers_.begin(), end);
   }
 
-  void Notify() {
+  void Notify() const {
     char buf[1] = {1};
     ::send(pipe_[0], buf, 1, 0);
   }
 
-  void Wait() {
+  void Wait() const {
     while (true) {
       Timestamp time_diff = TimeDiffEarliest();
       if (time_diff > ONE_MILLI_SECOND) {
@@ -155,7 +155,7 @@ class TimerManager : public NonCopyable {
     }
   }
 
-  Timestamp TimeDiffEarliest() {
+  Timestamp TimeDiffEarliest() const {
     std::unique_lock<std::mutex> lock(mutex_);
     return timers_.empty() ? ONE_SECOND
                            : (*timers_.begin())->Expiration() - Now();
@@ -168,7 +168,7 @@ class TimerManager : public NonCopyable {
   };
   std::set<Timer*, CompareTimerPtr> timers_;
   std::unordered_map<TimerId, Timer*> id_mapping_;
-  std::mutex mutex_;
+  mutable std::mutex mutex_;
   int pipe_[2];
   std::atomic<bool> stoped_;
 };
