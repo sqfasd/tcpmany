@@ -13,6 +13,7 @@
 #include "base/singleton.h"
 #include "base/blocking_queue.h"
 #include "inet_address.h"
+#include "timer.h"
 
 namespace tcpmany {
 
@@ -41,6 +42,13 @@ class Kernel : public NonCopyable {
     Singleton<Kernel>::Instance().DoRelease(conn);
   }
 
+  static TimerId AddTimer(Timestamp when, const TimerCallback& cb) {
+    return Singleton<Kernel>::Instance().DoAddTimer(when ,cb);
+  }
+  static void CancelTimer(TimerId id) {
+    Singleton<Kernel>::Instance().DoCancelTimer(id);
+  }
+
  private:
   Kernel();
   ~Kernel();
@@ -49,14 +57,16 @@ class Kernel : public NonCopyable {
   std::shared_ptr<Connection> DoNewConnection(const InetAddress& dst_addr,
                               const InetAddress& src_addr);
   void DoSend(std::shared_ptr<Packet> packet);
+  // must close it before remove
+  void DoRelease(std::shared_ptr<Connection> conn);
+  TimerId DoAddTimer(Timestamp when, const TimerCallback& cb);
+  void DoCancelTimer(TimerId id);
 
   void ReceiveThread();
   void SendThread();
+  void TimerThread();
   Connection* FindConnection(const std::string& address);
   void InsertConnection(const std::string& addr, std::shared_ptr<Connection> conn);
-
-  // must close it before remove
-  void DoRelease(std::shared_ptr<Connection> conn);
 
   ConnectionMap connections_;
   std::mutex conn_mutex_;
@@ -66,12 +76,17 @@ class Kernel : public NonCopyable {
   int sockfd_;
   BlockingQueue<std::shared_ptr<Packet>> packets_;
 
+  TimerManager timer_manager_;
+  std::thread timer_thread_;
+
   enum StopStatus {
     SS_STOPED,
     SS_RUNNING,
     SS_STOPING,
   };
   StopStatus receive_stop_state_;
+  StopStatus timer_stop_state_;
+
   std::atomic<bool> stoped_;
 
   friend class Singleton<Kernel>;

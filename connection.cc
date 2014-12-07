@@ -35,6 +35,11 @@ Connection::~Connection() {
 void Connection::Connect() {
   Kernel::Send(SynPacket(seq_++, dst_addr_, src_addr_));
   state_ = CS_SYN_SENT;
+  // int timer_id = Kernel::NewTimer(duration, bind(Func, pkt));
+  // ResendTimer rt;
+  // rt.callback = cb;
+  // rt.timer_id = timer_id;
+  // rt.cancel_condition = ack_seq_;
 }
 
 void Connection::Close() {

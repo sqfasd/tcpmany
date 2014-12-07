@@ -7,6 +7,7 @@
 #include <linux/if_ether.h>
 #include <functional>
 #include <string>
+#include <vector>
 
 #include "packet.h"
 #include "connection.h"
@@ -29,6 +30,7 @@ static bool IsLastPacket(PacketPtr& packet) {
 Kernel::Kernel()
     : sockfd_(-1),
       receive_stop_state_(SS_STOPED),
+      timer_stop_state_(SS_STOPED),
       stoped_(false) {
   sockfd_ = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
   CHECK(sockfd_ >= 0) << "socket error: " << strerror(errno);
@@ -61,17 +63,27 @@ void Kernel::DoStop() {
     }
     LOG(INFO) << "all connection closed";
 
+    LOG(INFO) << "timer thread exiting ...";
+    timer_manager_.Stop();
+    timer_stop_state_ = SS_STOPING;
+    if (timer_thread_.joinable()) {
+      timer_thread_.join();
+    }
+
+    LOG(INFO) << "receive thread exiting ...";
     receive_stop_state_ = SS_STOPING;
     if (receive_thread_.joinable()) {
       receive_thread_.join();
     }
 
+    LOG(INFO) << "send thread exiting ...";
     packets_.Push(LastPacket());
     if (send_thread_.joinable()) {
       send_thread_.join();
     }
 
     ::close(sockfd_);
+    LOG(INFO) << "Stoped normally";
   }
 }
 
@@ -93,7 +105,7 @@ void Kernel::ReceiveThread() {
       LOG(INFO) << "recvfrom length(" << len << ") is too small";
       continue;
     }
-    VLOG(4) << "receive packet: " << *packet;
+    VLOG(5) << "receive packet: " << *packet;
     if (!packet->IsTcp()) {
       LOG(INFO) << "invalid tcp packet";
       continue;
@@ -111,7 +123,7 @@ void Kernel::ReceiveThread() {
       conn = FindConnection(fake_addr);
     }
     if (conn == nullptr) {
-      VLOG(4) << "no connection match the packet";
+      VLOG(5) << "no connection match the packet";
       continue;
     } else {
       conn->ProcessPacket(*packet);
@@ -151,8 +163,11 @@ void Kernel::DoSend(std::shared_ptr<Packet> packet) {
 void Kernel::DoStart() {
   CHECK(!send_thread_.joinable());
   CHECK(!receive_thread_.joinable());
+  CHECK(!timer_thread_.joinable());
   send_thread_ = std::thread(&Kernel::SendThread, this);
   receive_thread_ = std::thread(&Kernel::ReceiveThread, this);
+  timer_thread_ = std::thread(&Kernel::TimerThread, this);
+  LOG(INFO) << "Kernel started";
 }
 
 ConnectionPtr Kernel::DoNewConnection(const InetAddress& dst_addr,
@@ -185,6 +200,23 @@ void Kernel::DoRelease(ConnectionPtr conn) {
   CHECK(conn->IsClosed());
   std::string address = conn->GetSrcAddress().ToIpPort();
   connections_.erase(address);
+}
+
+void Kernel::TimerThread() {
+  timer_stop_state_ = SS_RUNNING;
+  while (timer_stop_state_ == SS_RUNNING) {
+    timer_manager_.RunExpired();
+  }
+  timer_stop_state_ = SS_STOPED;
+  LOG(INFO) << "timer thread exited";
+}
+
+TimerId Kernel::DoAddTimer(Timestamp when, const TimerCallback& cb) {
+  return timer_manager_.AddTimer(when, cb);
+}
+
+void Kernel::DoCancelTimer(TimerId id) {
+  timer_manager_.CancelTimer(id);
 }
 
 }

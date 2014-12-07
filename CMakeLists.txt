@@ -12,9 +12,11 @@ ADD_DEFINITIONS(-Wall -g)
 ADD_LIBRARY(tcpmany STATIC
   connection.cc
   kernel.cc
+  timer.cc
 )
 
 ADD_SUBDIRECTORY(example)
+ADD_SUBDIRECTORY(test)
 
 #ENABLE_TESTING()
 #ADD_TEST(NAME test.run COMMAND test.run)
