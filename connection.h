@@ -4,21 +4,26 @@
 #include <string>
 #include <functional>
 #include <atomic>
+#include <memory>
 
-#include "base.h"
-#include "noncopyable.h"
+#include "base/basictypes.h"
+#include "base/noncopyable.h"
 #include "packet.h"
 
 namespace tcpmany {
 
 class Kernel;
 class Connection;
-typedef std::function<void (Connection&)> ConnectedCallback;
-typedef std::function<void (Connection&, const char*, int)> MessageCallback;
-typedef std::function<void (Connection&)> ClosedCallback;
+typedef std::shared_ptr<Connection> ConnectionPtr;
+typedef std::function<void (ConnectionPtr)> ConnectedCallback;
+typedef std::function<void (ConnectionPtr, const char*, int)> MessageCallback;
+typedef std::function<void (ConnectionPtr)> ClosedCallback;
 
-class Connection : public NonCopyable {
+class Connection : NonCopyable,
+                   public std::enable_shared_from_this<Connection> {
  public:
+  ~Connection();
+
   void SetConnectedCallback(const ConnectedCallback& cb) {
     connected_callback_ = cb;
   }
@@ -50,7 +55,6 @@ class Connection : public NonCopyable {
 
  private:
   Connection(const InetAddress& dst_addr, const InetAddress& src_addr);
-  ~Connection();
   void ProcessPacket(const Packet& packet);
   void ProcessMessage(const Packet& packet);
 

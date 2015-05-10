@@ -6,9 +6,9 @@
 #include <pcap.h>
 #include <iostream>
 #include <memory>
-#include "logging.h"
-#include "packet.h"
+#include "tcpmany.h"
 
+using std::cout;
 using std::cerr;
 using std::endl;
 using std::make_shared;
@@ -31,7 +31,7 @@ void ProcessPacket(u_char *args,
     packet.SetDstIpNet(g_client_ip_net);
     packet.SetSrcIpNet(dst_ip_net);
     packet.CalculateChecksum();
-    VLOG(3) << "redirect pakcet: " << packet;
+    cout << "redirect pakcet: " << packet << endl;
 
     struct sockaddr_in dst_addr = packet.DstSockAddr();
     CHECK(g_sockfd > 0);
@@ -42,7 +42,7 @@ void ProcessPacket(u_char *args,
                      (struct sockaddr*)&dst_addr,
                      sizeof(struct sockaddr));
     if (ret == -1) {
-      LOG(ERROR) << "sendto error: " << ::strerror(errno);
+      cerr << "sendto error: " << ::strerror(errno) << endl;
     }
   }
 }
@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
 
   pcap_loop(handle, -1, ProcessPacket, NULL);
 
-  LOG(INFO) << "redirect loop exited";
+  cout << "redirect loop exited";
   ::close(g_sockfd);
   pcap_freecode(&fp);
   pcap_close(handle);

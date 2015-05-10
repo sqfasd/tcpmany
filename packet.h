@@ -12,8 +12,8 @@
 #include <memory>
 #include <utility>
 
-#include "base.h"
-#include "logging.h"
+#include "base/basictypes.h"
+#include "base/logging.h"
 #include "inet_address.h"
 
 namespace tcpmany {

@@ -2,19 +2,19 @@
 
 #include <time.h>
 #include <memory>
+#include "base/logging.h"
 #include "kernel.h"
-#include "logging.h"
 
 namespace tcpmany {
 
-void DefaultConnectedCallback(Connection&) {
+void DefaultConnectedCallback(ConnectionPtr) {
 }
 
-void DefaultMessageCallback(Connection&, const char*, int) {
+void DefaultMessageCallback(ConnectionPtr, const char*, int) {
 }
 
-void DefaultClosedCallback(Connection& conn) {
-  VLOG(3) << "DefaultClosedCallback: " << conn.GetSrcAddress().ToIpPort();
+void DefaultClosedCallback(ConnectionPtr conn) {
+  VLOG(3) << "DefaultClosedCallback: " << conn->GetSrcAddress().ToIpPort();
 }
 
 Connection::Connection(const InetAddress& dst_addr,
@@ -29,12 +29,17 @@ Connection::Connection(const InetAddress& dst_addr,
 }
 
 Connection::~Connection() {
-  VLOG(3) << "Connection destroy: " << GetSrcAddress().ToIpPort();
+  VLOG(3) << "Connection destroyed: " << GetSrcAddress().ToIpPort();
 }
 
 void Connection::Connect() {
   Kernel::Send(SynPacket(seq_++, dst_addr_, src_addr_));
   state_ = CS_SYN_SENT;
+  // int timer_id = Kernel::NewTimer(duration, bind(Func, pkt));
+  // ResendTimer rt;
+  // rt.callback = cb;
+  // rt.timer_id = timer_id;
+  // rt.cancel_condition = ack_seq_;
 }
 
 void Connection::Close() {
@@ -66,7 +71,7 @@ void Connection::ProcessPacket(const Packet& packet) {
       if (packet.IsSyn() && packet.IsAck()) {
         Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
         state_ = CS_ESTABLISHED;
-        connected_callback_(*this);
+        connected_callback_(shared_from_this());
       } else {
         CHECK(false);
       }
@@ -79,7 +84,7 @@ void Connection::ProcessPacket(const Packet& packet) {
       if (packet.IsAck() && packet.IsFin()) {
         Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
         state_ = CS_CLOSED;
-        closed_callback_(*this);
+        closed_callback_(shared_from_this());
       } else if (packet.IsAck()) {
         state_ = CS_FIN_WAIT_2;
       } else if (packet.IsFin()) {
@@ -93,7 +98,7 @@ void Connection::ProcessPacket(const Packet& packet) {
       if (packet.IsFin()) {
         Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
         state_ = CS_CLOSED; // CS_TIME_WAIT;
-        closed_callback_(*this);
+        closed_callback_(shared_from_this());
       } else {
         CHECK(false);
       }
@@ -101,7 +106,7 @@ void Connection::ProcessPacket(const Packet& packet) {
     case CS_CLOSING:
       if (packet.IsAck()) {
         state_ = CS_CLOSED; // CS_TIME_WAIT;
-        closed_callback_(*this);
+        closed_callback_(shared_from_this());
       } else {
         CHECK(false);
       }
@@ -116,7 +121,7 @@ void Connection::ProcessMessage(const Packet& packet) {
   int data_len = packet.DataLen();
   if (data_len > 0) {
     Kernel::Send(AckPacket(seq_, packet, dst_addr_, src_addr_));
-    message_callback_(*this, packet.Data(), data_len);
+    message_callback_(shared_from_this(), packet.Data(), data_len);
   } else if (packet.IsFin()) {
     Kernel::Send(FinAckPacket(seq_, packet, dst_addr_, src_addr_));
     state_ = CS_CLOSING;

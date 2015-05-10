@@ -6,8 +6,8 @@
 #include <string>
 #include <sstream>
 
-#include "base.h"
-#include "logging.h"
+#include "base/basictypes.h"
+#include "base/logging.h"
 
 namespace tcpmany {
 class InetAddress {

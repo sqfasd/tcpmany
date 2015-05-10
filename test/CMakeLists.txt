@@ -1,0 +1,7 @@
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+
+ADD_EXECUTABLE(unittest main_unittest.cc)
+
+TARGET_LINK_LIBRARIES(unittest
+  tcpmany
+)
