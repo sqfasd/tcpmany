@@ -45,17 +45,15 @@ cd ./bin/
 
 ### 运行redirect server
 
-即tcpburn中所说的intercept
-我这里叫redirect server
-因为它的作用是截获、修改和转发数据包的
+即tcpburn中所说的intercept, 我这里叫redirect server, 因为它的作用是截获、修改和转发数据包的
 
 ```bash
 usage: ./redirect <client_ip> <server_port> <interface>
 ```
 
-```client_ip```是指运行测试客户端的的地址
-```server_port```是```target server```的端口号
-```interface```是一个网络接口，必须要能捕获到有效的网络数据，比如eth0
+* ```client_ip``` 是指运行测试客户端的的地址
+* ```server_port```是```target server```的端口号
+* ```interface``` 是一个网络接口，必须要能捕获到有效的网络数据，比如eth0
 
 ### 运行模拟客户端
 
@@ -63,8 +61,9 @@ usage: ./redirect <client_ip> <server_port> <interface>
 usage: ./connectmany <ip> <port> <count> <local_ip>
 ```
 
-```ip```是指```target server```的ip地址
-```port```是指```target server```的端口号
-```count```是需要发起的连接数
-```local_ip```是客户端连接使用的虚拟ip的起始值
+* ```ip```是指```target server```的ip地址
+* ```port```是指```target server```的端口号
+* ```count``` 是需要发起的连接数
+* ```local_ip``` 是客户端连接使用的虚拟ip的起始值
+
 之前提到客户端选择的源ip是随机指定的，实际上为了防止随机ip多现有网络造成影响，或者为了方便起见，使用了一个ip范围，这个```local_ip```就是这个ip范围的起始值
